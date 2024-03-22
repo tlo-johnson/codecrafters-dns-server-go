@@ -2,30 +2,50 @@ package main
 
 import (
 	"encoding/binary"
+  "strings"
 	"fmt"
 	"net"
 )
 
 type dnsMessage struct {
   header []byte
+  question []byte
 }
 
 func newDnsMessage() *dnsMessage {
   return &dnsMessage {
     header: newHeader(),
+    question: newQuestion(),
   }
 }
 
 func (message *dnsMessage) byte() []byte {
-  return message.header[:]
+  return append(message.header[:], message.question[:]...)
 }
 
 func newHeader() []byte {
   header := make([]byte, 12)
   binary.BigEndian.PutUint16(header[0:2], 1234)
   binary.BigEndian.PutUint16(header[2:4], 1 << 15)
+  binary.BigEndian.PutUint16(header[4:6], 1)
 
   return header
+}
+
+func newQuestion() []byte {
+  var question []byte
+
+  domainName := "codecrafters.io"
+  parts := strings.Split(domainName, ".")
+  for _, content := range(parts) {
+    question = append(question, byte(len(content)))
+    question = append(question, content...)
+  }
+  question = append(question, "\x00"...)
+  question = binary.BigEndian.AppendUint16(question, 1) // "A" record
+  question = binary.BigEndian.AppendUint16(question, 1) // "IN" record
+
+  return question
 }
 
 func main() {
