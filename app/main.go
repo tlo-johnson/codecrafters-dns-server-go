@@ -10,42 +10,66 @@ import (
 type dnsMessage struct {
   header []byte
   question []byte
+  answer []byte
 }
 
 func newDnsMessage() *dnsMessage {
   return &dnsMessage {
     header: newHeader(),
     question: newQuestion(),
+    answer: newAnswer(),
   }
 }
 
 func (message *dnsMessage) byte() []byte {
-  return append(message.header[:], message.question[:]...)
+  result := append(message.header[:], message.question[:]...)
+  result = append(result, message.answer[:]...)
+  return result
 }
 
 func newHeader() []byte {
   header := make([]byte, 12)
   binary.BigEndian.PutUint16(header[0:2], 1234)
   binary.BigEndian.PutUint16(header[2:4], 1 << 15)
-  binary.BigEndian.PutUint16(header[4:6], 1)
+  binary.BigEndian.PutUint16(header[4:6], 1) // Question Count (QDCOUNT)
+  binary.BigEndian.PutUint16(header[6:8], 1) // Answer Record Count (ANCOUNT)
 
   return header
 }
 
 func newQuestion() []byte {
-  var question []byte
-
   domainName := "codecrafters.io"
-  parts := strings.Split(domainName, ".")
-  for _, content := range(parts) {
-    question = append(question, byte(len(content)))
-    question = append(question, content...)
-  }
-  question = append(question, "\x00"...)
+
+  question := labelSequence(domainName)
   question = binary.BigEndian.AppendUint16(question, 1) // "A" record
   question = binary.BigEndian.AppendUint16(question, 1) // "IN" record
 
   return question
+}
+
+func newAnswer() []byte {
+  domainName := "codecrafters.io"
+
+  answer := labelSequence(domainName)
+  answer = binary.BigEndian.AppendUint16(answer, 1)
+  answer = binary.BigEndian.AppendUint16(answer, 1)
+  answer = binary.BigEndian.AppendUint32(answer, 1)
+  answer = binary.BigEndian.AppendUint16(answer, 4)
+  answer = append(answer, []byte{ 8, 8, 8, 8 }...)
+
+  return answer
+}
+
+func labelSequence(domainName string) []byte {
+  var result []byte
+  parts := strings.Split(domainName, ".")
+  for _, content := range(parts) {
+    result = append(result, byte(len(content)))
+    result = append(result, content...)
+  }
+  result = append(result, "\x00"...)
+
+  return result
 }
 
 func main() {
