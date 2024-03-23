@@ -13,9 +13,9 @@ type dnsMessage struct {
   answer []byte
 }
 
-func newDnsMessage() *dnsMessage {
+func newDnsMessage(data []byte) *dnsMessage {
   return &dnsMessage {
-    header: newHeader(),
+    header: newHeader(data),
     question: newQuestion(),
     answer: newAnswer(),
   }
@@ -27,14 +27,24 @@ func (message *dnsMessage) byte() []byte {
   return result
 }
 
-func newHeader() []byte {
+func newHeader(data []byte) []byte {
   header := make([]byte, 12)
-  binary.BigEndian.PutUint16(header[0:2], 1234)
-  binary.BigEndian.PutUint16(header[2:4], 1 << 15)
+  copy(header, data[0:2])
+  copy(header[2:4], newFlags(data))
   binary.BigEndian.PutUint16(header[4:6], 1) // Question Count (QDCOUNT)
   binary.BigEndian.PutUint16(header[6:8], 1) // Answer Record Count (ANCOUNT)
 
   return header
+}
+
+func newFlags(data []byte) []byte {
+  firstByte := 0b10000000 | data[2] & 0b11111001
+  secondByte := 0b00001111 | data[3]
+   if secondByte == 0 {
+    return []byte { firstByte, 0 }
+  } else {
+    return []byte { firstByte, 4 }
+  }
 }
 
 func newQuestion() []byte {
@@ -95,10 +105,10 @@ func main() {
 			break
 		}
 	
-		receivedData := string(buf[:size])
-		fmt.Printf("Received %d bytes from %s: %s\n", size, source, receivedData)
+		receivedData := buf[:size]
+		fmt.Printf("Received %d bytes from %s: %s\n", size, source, string(receivedData))
 	
-    response := newDnsMessage()
+    response := newDnsMessage(receivedData)
 	
     _, err = udpConn.WriteToUDP(response.byte(), source)
 		if err != nil {
