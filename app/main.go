@@ -2,7 +2,6 @@ package main
 
 import (
 	"encoding/binary"
-  "strings"
 	"fmt"
 	"net"
 )
@@ -16,8 +15,8 @@ type dnsMessage struct {
 func newDnsMessage(data []byte) *dnsMessage {
   return &dnsMessage {
     header: newHeader(data),
-    question: newQuestion(),
-    answer: newAnswer(),
+    question: newQuestion(data),
+    answer: newAnswer(data),
   }
 }
 
@@ -47,20 +46,25 @@ func newFlags(data []byte) []byte {
   }
 }
 
-func newQuestion() []byte {
-  domainName := "codecrafters.io"
+func newQuestion(data []byte) []byte {
+  var question []byte
 
-  question := labelSequence(domainName)
+  for _, value := range data[12:] {
+    if value == 0 {
+      break
+    }
+    question = append(question, value)
+  }
+
+  question = append(question, 0)
   question = binary.BigEndian.AppendUint16(question, 1) // "A" record
   question = binary.BigEndian.AppendUint16(question, 1) // "IN" record
 
   return question
 }
 
-func newAnswer() []byte {
-  domainName := "codecrafters.io"
-
-  answer := labelSequence(domainName)
+func newAnswer(data []byte) []byte {
+  answer := domainName(data)
   answer = binary.BigEndian.AppendUint16(answer, 1)
   answer = binary.BigEndian.AppendUint16(answer, 1)
   answer = binary.BigEndian.AppendUint32(answer, 1)
@@ -70,14 +74,16 @@ func newAnswer() []byte {
   return answer
 }
 
-func labelSequence(domainName string) []byte {
+func domainName(data []byte) []byte {
   var result []byte
-  parts := strings.Split(domainName, ".")
-  for _, content := range(parts) {
-    result = append(result, byte(len(content)))
-    result = append(result, content...)
+
+  for _, value := range data[12:] {
+    if value == 0 {
+      result = append(result, 0)
+      break
+    }
+    result = append(result, value)
   }
-  result = append(result, "\x00"...)
 
   return result
 }
