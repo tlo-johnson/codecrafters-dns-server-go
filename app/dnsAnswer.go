@@ -13,7 +13,7 @@ type dnsAnswer struct {
   data []byte
 }
 
-type dnsAnswers struct {
+type dnsAnswerSection struct {
   answers []dnsAnswer
 }
 
@@ -28,31 +28,7 @@ func (answer dnsAnswer) bytes() []byte {
   return bytes
 }
 
-func newDnsAnswer(question dnsQuestion) dnsAnswer {
-  questionBytes := question.bytes()
-  questionLength := len(questionBytes)
-
-  return dnsAnswer {
-    name: questionBytes[: questionLength - 4],
-    dnsType: 1,
-    class: 1,
-    timeToLive: 60,
-    length: 4,
-    data: []byte{ 8, 8, 8, 8 },
-  }
-}
-
-func newDnsAnswers(questions dnsQuestions) dnsAnswers {
-  var dnsAnswers dnsAnswers
-
-  for _, question := range questions.questions {
-    dnsAnswers.answers = append(dnsAnswers.answers, newDnsAnswer(question))
-  }
-
-  return dnsAnswers
-}
-
-func (answers dnsAnswers) bytes() []byte {
+func (answers dnsAnswerSection) bytes() []byte {
   var bytes []byte
   for _, answer := range answers.answers {
     bytes = append(bytes, answer.bytes()...)

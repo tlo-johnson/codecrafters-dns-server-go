@@ -2,7 +2,7 @@ package main
 
 import "encoding/binary"
 
-type dnsHeader struct {
+type dnsHeaderSection struct {
   packetIdentifier uint16
   queryResponseIndicator uint8
   operationCode uint8
@@ -18,7 +18,7 @@ type dnsHeader struct {
   additionalRecordCount uint16
 }
 
-func (header *dnsHeader) byte() []byte {
+func (header dnsHeaderSection) bytes() []byte {
   var bytes []byte
 
   flags := uint16(header.queryResponseIndicator) << 15 | 

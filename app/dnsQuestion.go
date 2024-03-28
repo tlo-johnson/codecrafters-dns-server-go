@@ -8,14 +8,6 @@ type dnsQuestion struct {
   class uint16
 }
 
-func newDnsQuestion(name []byte) dnsQuestion {
-  return dnsQuestion {
-    name: name,
-    dnsType: 1,
-    class: 1,
-  }
-}
-
 func (question dnsQuestion) bytes() []byte {
   bytes := question.name
   bytes = binary.BigEndian.AppendUint16(bytes, question.dnsType)
@@ -24,11 +16,11 @@ func (question dnsQuestion) bytes() []byte {
   return bytes
 }
 
-type dnsQuestions struct {
+type dnsQuestionSection struct {
   questions []dnsQuestion
 }
 
-func (questions dnsQuestions) bytes() []byte {
+func (questions dnsQuestionSection) bytes() []byte {
   var bytes []byte
   for _, question := range questions.questions {
     bytes = append(bytes, question.bytes()...)
